@@ -11,7 +11,7 @@ class DateWindow(QWidget):
         
         self.date_label = QLabel(date.toString())
         layout.addWidget(self.date_label)
-        
+        #test
         self.setLayout(layout)
 
 class CalendarApp(QMainWindow):
@@ -25,6 +25,7 @@ class CalendarApp(QMainWindow):
 
         self.today_button = QPushButton("Heute")
         self.today_button.clicked.connect(self.go_to_today)
+        self.test = QPushButton("hallo")
         
         central_widget = QWidget() 
         layout = QVBoxLayout(central_widget)
