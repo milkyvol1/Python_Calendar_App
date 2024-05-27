@@ -1,18 +1,63 @@
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QCalendarWidget, QVBoxLayout, QWidget, QLabel, QPushButton
+from PySide6.QtWidgets import QApplication, QMainWindow, QCalendarWidget, QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem
 from PySide6.QtCore import QDate
+import sqlite3
 
 class DateWindow(QWidget):
     def __init__(self, date):
         super().__init__()
-        self.setWindowTitle("Selected Date")
+        self.setWindowTitle("Tagesansicht für")
         self.setGeometry(200, 200, 200, 100)
-        layout = QVBoxLayout()
+        self.resize(1000, 500)
+
+        self.btn_new_entry = QPushButton("Neuer Eintrag")
+        self.btn_new_entry.clicked.connect(self.add_entry)
+
+        self.tableWidget = QTableWidget()
+        self.tableWidget.setColumnCount(1)
+        self.tableWidget.setHorizontalHeaderLabels(["Einträge"])
+
+        top_layout = QHBoxLayout()
+        top_layout.addStretch()  # Füge einen Stretch-Abschnitt hinzu, um den Button nach rechts zu drücken
+        top_layout.addWidget(self.btn_new_entry)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(top_layout)
+        main_layout.addStretch()
+        main_layout.addWidget(self.tableWidget)
         
-        self.date_label = QLabel(date.toString())
-        layout.addWidget(self.date_label)
-        #test
-        self.setLayout(layout)
+        self.setLayout(main_layout)
+
+        self.load_entries()
+
+    def add_entry(self):
+        row_position = self.tableWidget.rowCount()
+        self.tableWidget.insertRow(row_position)
+        new_item = QTableWidgetItem(f"Eintrag {row_position + 1}")
+        self.tableWidget.setItem(row_position, 0, new_item)
+
+        self.save_entry(f"Eintrag {row_position + 1}")
+
+    def save_entry(self, entry):
+        connection = sqlite3.connect("calendar_entries.db")
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO entries (date, entry) VALUES (?, ?)", (self.date.toString(), entry))
+        connection.commit()
+        connection.close()
+
+    def load_entries(self):
+        connection = sqlite3.connect("calendar_entries.db")
+        cursor = connection.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS entries (date TEXT, entry TEXT)")
+        cursor.execute("SELECT entry FROM entries WHERE date = ?", (self.date.toString(),))
+        entries = cursor.fetchall()
+        connection.close()
+
+        for entry in entries:
+            row_position = self.tableWidget.rowCount()
+            self.tableWidget.insertRow(row_position)
+            self.tableWidget.setItem(row_position, 0, QTableWidgetItem(entry[0]))
+
 
 class CalendarApp(QMainWindow):
     def __init__(self):
@@ -45,5 +90,6 @@ class CalendarApp(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = CalendarApp()
+    main_window.resize(1000, 500)
     main_window.show()
     sys.exit(app.exec())
