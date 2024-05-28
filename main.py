@@ -1,17 +1,39 @@
 import sys
+import os
 from PySide6.QtWidgets import QApplication, QMainWindow, QCalendarWidget, QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem
 from PySide6.QtCore import QDate
 import sqlite3
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class DateWindow(QWidget):
     def __init__(self, date):
         super().__init__()
+        self.date = date
         self.setWindowTitle("Tagesansicht für")
         self.setGeometry(200, 200, 200, 100)
         self.resize(1000, 500)
 
         self.btn_new_entry = QPushButton("Neuer Eintrag")
         self.btn_new_entry.clicked.connect(self.add_entry)
+
+        self.btn_load_weather = QPushButton("Wetter laden...")
+        self.btn_load_weather.clicked.connect(self.load_weather)
+
+        self.lbl_weather_info = QLabel("Test")
+
+        # Create labels to display weather information
+        self.description_label = QLabel("Description: ", self)
+        self.temperature_label = QLabel("Temperature: ", self)
+        self.feels_like_label = QLabel("Feels Like: ", self)
+        self.high_label = QLabel("High: ", self)
+        self.low_label = QLabel("Low: ", self)
+
+
+        # Add labels to the layout
+        
 
         self.tableWidget = QTableWidget()
         self.tableWidget.setColumnCount(1)
@@ -20,11 +42,18 @@ class DateWindow(QWidget):
         top_layout = QHBoxLayout()
         top_layout.addStretch()  # Füge einen Stretch-Abschnitt hinzu, um den Button nach rechts zu drücken
         top_layout.addWidget(self.btn_new_entry)
+        top_layout.addWidget(self.btn_load_weather)
 
         main_layout = QVBoxLayout()
         main_layout.addLayout(top_layout)
         main_layout.addStretch()
         main_layout.addWidget(self.tableWidget)
+
+        main_layout.addWidget(self.description_label)
+        main_layout.addWidget(self.temperature_label)
+        main_layout.addWidget(self.feels_like_label)
+        main_layout.addWidget(self.high_label)
+        main_layout.addWidget(self.low_label)
         
         self.setLayout(main_layout)
 
@@ -58,6 +87,31 @@ class DateWindow(QWidget):
             self.tableWidget.insertRow(row_position)
             self.tableWidget.setItem(row_position, 0, QTableWidgetItem(entry[0]))
 
+    def load_weather(self):
+        api_key = os.getenv('WEATHER_API_KEY')
+        api_key1 = open('api_key.txt', 'r').read()
+        lat = 51.7189
+        lon = 8.7575
+        Geo_coords  =[51.7191, 8.7544]
+        city_name = "paderborn"
+        url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&units=metric&appid={api_key1}"
+        result = requests.get(url)
+        print(result.json())
+        
+        if result.json()['cod'] == '404':
+            print("Invalid location")
+
+        description = result.json()['weather'][0]['description']
+        temperature = round(result.json()['main']['temp'])
+        feels_like = round(result.json()['main']['feels_like'])
+        high = round(result.json()['main']['temp_max'])
+        low = round(result.json()['main']['temp_min'])
+
+        self.description_label.setText(f"Description: {description}")
+        self.temperature_label.setText(f"Temperature: {temperature}°C")
+        self.feels_like_label.setText(f"Feels Like: {feels_like}°C")
+        self.high_label.setText(f"High: {high}°C")
+        self.low_label.setText(f"Low: {low}°C")
 
 class CalendarApp(QMainWindow):
     def __init__(self):
